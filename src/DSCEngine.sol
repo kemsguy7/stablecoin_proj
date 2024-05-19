@@ -23,9 +23,10 @@
 // private
 // view & pure functions
 
-pragma solidity ^0.8.18;
+pragma solidity ^0.8.19;
 
 import {DecentralizedStableCoin} from "./DecentralizedStableCoin.sol";
+import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 
 /**
  * @title DSCEngine
@@ -44,17 +45,20 @@ import {DecentralizedStableCoin} from "./DecentralizedStableCoin.sol";
  * @notice This contract is VERY loosely based on the MakerDAO DSS (DAI) system.
  */
 
-contract DSCEngine {
+contract DSCEngine is ReentrancyGuard {
     ////////////////
     // Errors     //
     ////////////////
     error DSCEngine__NeedsMoreThanZero();
     error DSCEngine__TokenAddressesAndPriceFeedAddressesMustBeSameLength();
+    error DSCEngine__NotAllowedToken();
 
     ////////////////
     // State Variables     //
     ////////////////
     mapping(address token => address priceFeed) private s_priceFeeds; // tokenToPriceFeed
+    mapping(address user => mapping(address token => uint256 amount))
+        private s_collateralDeposited; // map the user's balance to a mapping of tokens
 
     DecentralizedStableCoin private immutable i_dsc;
 
@@ -64,6 +68,13 @@ contract DSCEngine {
     modifier moreThanZero(uint256 amount) {
         if (amount == 0) {
             revert DSCEngine__NeedsMoreThanZero();
+        }
+        _;
+    }
+
+    modifier isAllowedToken(address token) {
+        if (s_priceFeeds[token] == address(0)) {
+            revert DSCEngine__NotAllowedToken();
         }
         _;
     }
@@ -100,7 +111,16 @@ contract DSCEngine {
     function depositCollateral(
         address tokenCollateralAddress,
         uint256 amountCollateral
-    ) external moreThanZero(amountCollateral) {}
+    )
+        external
+        moreThanZero(amountCollateral)
+        isAllowedToken(tokenCollateralAddress)
+        nonReentrant
+    {
+        s_collateralDeposited[msg.sender][
+            tokenCollateralAddress
+        ] += amountCollateral;
+    }
 
     function redeemCollateralForDsc() external {}
 
