@@ -47,6 +47,12 @@ contract DSCEngine {
     // Errors     //
     ////////////////
     error DSCEngine__NeedsMoreThanZero();
+    error DSCEngine__TokenAddressesAndPriceFeedAddressesMustBeSameLength();
+
+    ////////////////
+    // State Variables     //
+    ////////////////
+    mapping(address token => address priceFeed) private s_priceFeeds; // tokenToPriceFeed
 
     /////////////////
     // Modifiers   //
@@ -58,6 +64,22 @@ contract DSCEngine {
         _;
     }
 
+    /////////////////
+    // Functions   //
+    /////////////////
+    constructor(
+        address[] memory tokenAddresses,
+        address[] memory priceFeedAddress,
+        address dscAddress
+    ) {
+        if (tokenAddresses.length != priceFeedAddresses.length) {
+            revert DSCEngine__TokenAddressesAndPriceFeedAddressesMustBeSameLength();
+        }
+    }
+
+    /////////////////
+    // External Functions   //
+    /////////////////
     function depositCollateralAndMintDsc() external {}
 
     /*
@@ -68,7 +90,7 @@ contract DSCEngine {
     function depositCollateral(
         address tokenCollateralAddress,
         uint256 amountCollateral
-    ) external {}
+    ) external moreThanZero(amountCollateral) {}
 
     function redeemCollateralForDsc() external {}
 
