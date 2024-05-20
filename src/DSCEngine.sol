@@ -59,6 +59,9 @@ contract DSCEngine is ReentrancyGuard {
     ////////////////
     // State Variables     //
     ////////////////
+    uint256 private constant ADDITONAL_FEED_PRECISION = 1e10;
+    uint256 private constant ADDITIONAL_COLLATERAL_PRECISION = 1e18;
+
     mapping(address token => address priceFeed) private s_priceFeeds; // tokenToPriceFeed
     mapping(address user => mapping(address token => uint256 amount))
         private s_collateralDeposited; // map the user's balance to a mapping of tokens
@@ -222,13 +225,13 @@ contract DSCEngine is ReentrancyGuard {
 
     function getAccountCollateralValue(
         address user
-    ) public view returns (uint256) {
+    ) public view returns (uint256 totalCollateralValueInUsd) { {
         // loop through each collateral token, get the amount they have deposited, and map it to
         // the price , to get the USD value
         for(uint256 i =0; i < s_collateralTokens.length; i++) {
             address token = s_collateralTokens[i];
             uint256 amount = s_collateralDeposited[user][token];
-            totalCollateralValueInUsd +=
+            totalCollateralValueInUsd += getUsdValue(token, amount);
 
         }
     }
@@ -238,5 +241,6 @@ contract DSCEngine is ReentrancyGuard {
         (,int256 price,,,) = priceFeed.latestRoundData();
         // 1 ETH = $1000
         // The returned value from CL will be 1000 * 1e8
+        return((uint256(price) * ADDITIONAL_FEED_PRECISON) * amount) / PRECISION; // (1000 * 1e8 *(1e10)) * 1000 * 1e18; 
     }
 }
