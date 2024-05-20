@@ -63,6 +63,15 @@ contract DSCEngine is ReentrancyGuard {
     DecentralizedStableCoin private immutable i_dsc;
 
     /////////////////
+    // Events   //
+    /////////////////
+    event CollateralDeposited(
+        address indexed user,
+        address indexed token,
+        uint256 indexed amount
+    );
+
+    /////////////////
     // Modifiers   //
     /////////////////
     modifier moreThanZero(uint256 amount) {
@@ -104,6 +113,7 @@ contract DSCEngine is ReentrancyGuard {
     function depositCollateralAndMintDsc() external {}
 
     /*
+     * @notice follows CEI Pattern
      * @param tokenCollateralAddress The address of the token to deposit as collateral
      * @param amountCollateral The amount of collateral to deposit
      */
@@ -120,6 +130,11 @@ contract DSCEngine is ReentrancyGuard {
         s_collateralDeposited[msg.sender][
             tokenCollateralAddress
         ] += amountCollateral;
+        emit CollateralDeposited(
+            msg.sender,
+            tokenCollateralAddress,
+            amountCollateral
+        );
     }
 
     function redeemCollateralForDsc() external {}
