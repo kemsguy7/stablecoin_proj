@@ -27,6 +27,7 @@ pragma solidity ^0.8.19;
 
 import {DecentralizedStableCoin} from "./DecentralizedStableCoin.sol";
 import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
+import {IERC20} from "openzeppelin-contracts/contracts/token/ERC20/IERC20.sol";
 
 /**
  * @title DSCEngine
@@ -52,6 +53,7 @@ contract DSCEngine is ReentrancyGuard {
     error DSCEngine__NeedsMoreThanZero();
     error DSCEngine__TokenAddressesAndPriceFeedAddressesMustBeSameLength();
     error DSCEngine__NotAllowedToken();
+    error DSCEngine__TransferFailed();
 
     ////////////////
     // State Variables     //
@@ -59,7 +61,7 @@ contract DSCEngine is ReentrancyGuard {
     mapping(address token => address priceFeed) private s_priceFeeds; // tokenToPriceFeed
     mapping(address user => mapping(address token => uint256 amount))
         private s_collateralDeposited; // map the user's balance to a mapping of tokens
-
+    mapping(address user => uint256 amountDscMinted) private s_DSCMinted; // map the user's balance to the amount of DSC minted)
     DecentralizedStableCoin private immutable i_dsc;
 
     /////////////////
@@ -113,7 +115,7 @@ contract DSCEngine is ReentrancyGuard {
     function depositCollateralAndMintDsc() external {}
 
     /*
-     * @notice follows CEI Pattern
+     * @notice follows CEI(Check effects Interaction) Pattern
      * @param tokenCollateralAddress The address of the token to deposit as collateral
      * @param amountCollateral The amount of collateral to deposit
      */
@@ -135,6 +137,14 @@ contract DSCEngine is ReentrancyGuard {
             tokenCollateralAddress,
             amountCollateral
         );
+        bool success = IERC20(tokenCollateralAddress).transferFrom(
+            msg.sender,
+            address(this),
+            amountCollateral
+        );
+        if (!success) {
+            revert DSCEngine__TransferFailed();
+        }
     }
 
     function redeemCollateralForDsc() external {}
@@ -145,7 +155,16 @@ contract DSCEngine is ReentrancyGuard {
     // $100 ETH -> $75 ETH
     // $50 DSC
 
-    function mintDsc() external {}
+    // 1. Check if the collateral val
+    /*
+     * @notice follows CEI(Check effects Interaction) Pattern
+     * @param tokenCollateralAddress The address of the token to withdraw as collateral
+     * @param amountCollateral The amount of collateral to withdraw
+     * @notice they must have more collateral value that the minimum threshold
+     */
+    function mintDsc(
+        uint256 amountDscToMint
+    ) external moreThanZero(amountDscToMint) nonReentrant {}
 
     function burnDsc() external {}
 
